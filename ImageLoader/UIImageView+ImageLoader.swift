@@ -11,6 +11,8 @@ import UIKit
 
 private var ImageLoaderURLKey = 0
 private var ImageLoaderBlockKey = 0
+private var ImageLoaderDateForSetImageKey = 0
+
 
 /**
  Extension using ImageLoader sends a request, receives image and displays.
@@ -37,6 +39,23 @@ extension UIImageView {
             }
         }
     }
+
+    private var date: NSDate? {
+        get {
+            var date: NSDate?
+            dispatch_sync(UIImageView._ioQueue) {
+                date = objc_getAssociatedObject(self, &ImageLoaderDateForSetImageKey) as? NSDate
+            }
+
+            return date
+        }
+        set(newValue) {
+            dispatch_barrier_async(UIImageView._ioQueue) {
+                objc_setAssociatedObject(self, &ImageLoaderDateForSetImageKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            }
+        }
+    }
+
 
     private static let _Queue = dispatch_queue_create("swift.imageloader.queues.request", DISPATCH_QUEUE_SERIAL)
 
@@ -66,6 +85,10 @@ extension UIImageView {
         let handler: CompletionHandler = { [weak self] URL, image, error, cacheType in
             if let wSelf = self, thisURL = wSelf.URL, image = image where thisURL.isEqual(URL) {
                 wSelf.imageLoader_setImage(image, cacheType)
+            }
+            if let date = self?.date {
+                let diff = NSDate().timeIntervalSinceDate(date)
+                NSLog("diff %f", diff)
             }
             completionHandler?(URL, image, error, cacheType)
         }
@@ -108,6 +131,7 @@ extension UIImageView {
             }
 
             // Set an image
+            wSelf.date = NSDate()
             if UIImageView.imageLoader.automaticallyAdjustsSize {
                 wSelf.image = image.adjusts(wSelf.frame.size, scale: UIScreen.mainScreen().scale, contentMode: wSelf.contentMode)
             } else {
