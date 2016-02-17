@@ -86,11 +86,13 @@ extension UIImageView {
             if let wSelf = self, thisURL = wSelf.URL, image = image where thisURL.isEqual(URL) {
                 wSelf.imageLoader_setImage(image, cacheType)
             }
-            if let date = self?.date {
-                let diff = NSDate().timeIntervalSinceDate(date)
-                NSLog("diff %f", diff)
+            dispatch_async(dispatch_get_main_queue()) {
+                if let date = self?.date {
+                    let diff = NSDate().timeIntervalSinceDate(date)
+                    NSLog("diff %f", diff)
+                }
+                completionHandler?(URL, image, error, cacheType)
             }
-            completionHandler?(URL, image, error, cacheType)
         }
 
         // caching
